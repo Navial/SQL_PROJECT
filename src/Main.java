@@ -11,7 +11,7 @@ public class Main {
             System.exit(1);
         }
 
-        String url="jdbc:postgresql://0.0.0.0:5432/sql_project";
+        String url="jdbc:postgresql://127.0.0.1:5432/sql_project";
         Connection conn=null;
         try {
             conn= DriverManager.getConnection(url,"alexVic","azerty");
