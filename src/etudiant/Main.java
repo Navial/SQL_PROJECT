@@ -1,12 +1,9 @@
-import db.Authentication;
-import db.PaeService;
-import model.Etudiant;
+package etudiant;
 
-import java.net.Authenticator;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import etudiant.db.Authentication;
+import etudiant.db.PaeService;
+import etudiant.model.Etudiant;
+
 import java.util.Scanner;
 
 public class Main {
@@ -48,9 +45,11 @@ public class Main {
                     auth = new Authentication();
                     etudiant = auth.authenticate(email, motDePasse);
                     connected = true;
+
                     break;
             }
         }
+
 
         System.out.println("Bonjour " + etudiant.getPrenom() + " " + etudiant.getNom());
 
@@ -61,20 +60,28 @@ public class Main {
         "4) Vérifier les UE que vous pouvez ajouter");
 
         int choix = Integer.parseInt(scanner.nextLine());
-
+        PaeService ps  = new PaeService();
+        String codeUe;
         while(choix >= 1 && choix <= 4) {
             switch (choix) {
                 case 1:
-                    System.out.println("ajouterUe()");
+                    System.out.println("Entrer le code de l'UE à ajouter");
+                    codeUe = scanner.nextLine();
+                    ps.ajouterUE(etudiant.getId(),codeUe);
                     break;
                 case 2:
-                    System.out.println("enleverUe()");
+                    System.out.println("Entrer le code de l'UE à enlever");
+                    codeUe = scanner.nextLine();
+                    ps.enleverUE(etudiant.getId(),codeUe);
                     break;
                 case 3:
-                    System.out.println("validerPae()");
+                    ps.validerPAE();
                     break;
                 case 4:
-                    System.out.println("verifierUeDispo()");
+                    ps.afficher_UE_disponible();
+                    break;
+                case 5:
+                    ps.visualiser_PAE();
                     break;
             }
         }

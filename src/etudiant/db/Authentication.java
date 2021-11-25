@@ -1,6 +1,6 @@
-package db;
+package etudiant.db;
 
-import model.Etudiant;
+import etudiant.model.Etudiant;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import java.sql.*;
 
@@ -39,7 +39,9 @@ public class Authentication {
         Etudiant etudiant;
         try {
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT id_etudiant, nom, prenom, bloc, email, mot_de_passe FROM projet_sql.etudiants WHERE email = ?;");
+                    ("SELECT id_etudiant, nom, prenom, bloc, email, mot_de_passe " +
+                         "FROM projet_sql.etudiants " +
+                         "WHERE email = ?;");
             ps.setString(1,email);
             ResultSet rs = ps.executeQuery();
 
@@ -79,6 +81,7 @@ public class Authentication {
             throw new Exception("err iconnue");
         }
     }
+
 
 
 }
