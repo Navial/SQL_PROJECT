@@ -84,3 +84,102 @@ INSERT INTO projet_sql.lignes_ue VALUES(DEFAULT, code_ue_param, id_pae_var) RETU
 RETURN id_ue;
 END ;
 $$ LANGUAGE plpgsql;
+
+-- procedure 2
+CREATE OR REPLACE FUNCTION projet_sql.enlever_UE (
+    projet_sql.ues.code_ue%TYPE,
+    projet_sql.etudiants.id_etudiant%TYPE)
+    RETURNS projet_sql.ues.code_ue%TYPE
+AS $$
+DECLARE
+code_ue_param ALIAS FOR $1;
+    id_etudiant_param ALIAS FOR $2;
+    id_pae_var INTEGER;
+    pae_est_valide BOOLEAN;
+BEGIN
+    id_pae_var := (SELECT id_pae FROM paes WHERE id_etudiant = id_etudiant_param);
+    pae_est_valide := (SELECT est_valide FROM projet_sql.paes WHERE id_etudiant = id_etudiant_param);
+    IF pae_est_valide THEN
+        RAISE 'Votre PAE est deja valide';
+END IF;
+DELETE FROM lignes_ue WHERE code_ue = code_ue_param AND id_pae = id_pae_var;
+RETURN code_ue_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- procedure 3
+CREATE OR REPLACE FUNCTION projet_sql.valider_PAE (
+    projet_sql.etudiants.id_etudiant%TYPE)
+    RETURNS INTEGER
+AS $$
+DECLARE
+id_etudiant_param ALIAS FOR $1;
+    id_pae_var INTEGER;
+    somme_credits_valide INTEGER;
+    somme_credits_pae INTEGER;
+BEGIN
+    somme_credits_valide := (SELECT sum(nombre_credits) FROM ues u, ues_valide v WHERE u.code_ue = v.code_ue AND id_etudiant = id_etudiant_param);
+    id_pae_var := (SELECT id_pae FROM paes WHERE id_etudiant = id_etudiant_param);
+    somme_credits_pae := (SELECT sum(nombre_credits) FROM ues u, lignes_ue l WHERE u.code_ue = l.code_ue AND id_pae = id_pae_var);
+    -- EXCEPTIONS
+    IF((somme_credits_pae+somme_credits_valide)=180 AND somme_credits_pae>74) THEN
+        RAISE 'Votre PAE ne peut pas depasser 74 credits';
+END IF;
+    IF ((@somme_credits_valide<45) AND (@somme_credits_pae>60)) THEN
+        RAISE 'Votre PAE ne peut pas depasser 60 credits';
+END IF;
+    IF ((@somme_credits_pae>74) OR (@somme_credits_pae<55)) THEN
+        RAISE 'Votre PAE ne peut pas etre en dessous de 55 credits ou au-dessus de 74 credits';
+END IF;
+        -- RETURNS
+    IF (@somme_credits_pae+@somme_credits_valide)=180 THEN
+UPDATE projet_sql.etudiants SET bloc = '3' WHERE id_etudiant = id_etudiant_param;
+RETURN 3;
+END IF;
+    IF (@somme_credits_valide<45) THEN
+UPDATE projet_sql.etudiants SET bloc = '1' WHERE id_etudiant = id_etudiant_param;
+RETURN 1;
+END IF;
+UPDATE projet_sql.etudiants SET bloc = '2' WHERE id_etudiant = id_etudiant_param;
+RETURN 2;
+END;
+$$ LANGUAGE plpgsql;
+
+-- procedure 5
+CREATE OR REPLACE FUNCTION projet_sql.visualiser_PAE (
+    projet_sql.etudiants.id_etudiant%TYPE)
+    RETURNS RECORD
+AS $$
+DECLARE
+id_etudiant_param ALIAS FOR $1;
+    id_pae_var INTEGER;
+    ret RECORD;
+BEGIN
+    id_pae_var := (SELECT id_pae FROM paes WHERE id_etudiant = id_etudiant_param);
+SELECT u.code_ue as "Code", u.nom as "Nom", u.nombre_credits as "Nombre de crédits",  u.num_bloc as "Bloc"
+FROM projet_sql.ues u, projet_sql.lignes_ue l
+WHERE u.code_ue = l.code_ue AND id_pae = id_pae_var
+ORDER BY u.code_ue INTO ret;
+RETURN ret;
+END;
+$$ LANGUAGE plpgsql;
+
+-- procedure 6
+CREATE OR REPLACE FUNCTION projet_sql.reinitialiser_PAE (
+    projet_sql.etudiants.id_etudiant%TYPE)
+    RETURNS INTEGER
+AS $$
+DECLARE
+id_etudiant_param ALIAS FOR $1;
+     id_pae_var INTEGER;
+     pae_est_valide BOOLEAN;
+BEGIN
+    id_pae_var = (SELECT id_pae FROM paes WHERE id_etudiant = id_etudiant_param);
+     pae_est_valide = (SELECT est_valide FROM projet_sql.paes WHERE id_etudiant = id_etudiant_param);
+     IF pae_est_valide THEN
+          RAISE 'Votre PAE est deja valide';
+END IF;
+DELETE FROM projet_sql.lignes_ue WHERE id_pae = id_pae_var;
+RETURN 0;
+END ;
+$$ LANGUAGE plpgsql;
