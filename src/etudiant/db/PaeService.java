@@ -1,10 +1,9 @@
 package etudiant.db;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PaeService {
 
@@ -14,16 +13,16 @@ public class PaeService {
         connection = new DbConnection().connection;
     }
 
-    public void ajouterUE(int idEtudiant,String codeUE) throws Exception {
+    public void ajouterUE(int idEtudiant,int idUe) throws Exception {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.ajouter_UE(?, ?) AS code_ue");
-            ps.setInt(1,idEtudiant);
-            ps.setString(2,codeUE);
+                    ("SELECT projet_sql.ajouter_ue(?, ?) AS code_ue");
+            ps.setInt(1,idUe);
+            ps.setInt(2,idEtudiant);
             ResultSet rs = ps.executeQuery();
 
-            if(rs.getString("code_ue").equals(codeUE)) {
+            if(rs.next()) {
                 System.out.println("L'UE a bien été ajoutée à votre PAE");
             }else{
                 System.out.println("L'UE n'a pas pu être ajoutée à votre PAE");
@@ -34,32 +33,32 @@ public class PaeService {
         }
     }
 
-    public void enleverUE(int idEtudiant, String codeUE) throws Exception {
+    public void enleverUE(int idEtudiant, int idUe) throws Exception {
         try{
             PreparedStatement ps = connection.prepareStatement
                     ("SELECT projet_sql.enlever_UE(?, ?) AS code_ue");
-            ps.setInt(1,idEtudiant);
-            ps.setString(2,codeUE);
+            ps.setInt(1,idUe);
+            ps.setInt(2,idEtudiant);
             ResultSet rs = ps.executeQuery();
-
-            if(rs.getString("code_ue").equals(codeUE))
-                    System.out.println("L'UE " + codeUE + " à bien été enlevée de votre PAE.");
-            else{
-                System.out.println("L'UE " + codeUE + " n'a pas pu être enlevée de votre PAE.");
-            };
+            if (rs.next())
+                System.out.println("L'UE " + idUe + " à bien été enlevée de votre PAE.");
+            else
+                System.out.println("Une erreur s'est produite");
         }catch (SQLException se){
             System.out.println(se.getMessage());
             throw new Exception();
         }
     }
 
-    public void validerPAE() throws Exception {
+    public void validerPAE(int idEtudiant) throws Exception {
         try{
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.valider_PAE() AS est_valide");
-            ResultSet rs = ps.executeQuery();
+                    ("SELECT projet_sql.valider_PAE(?) AS est_valide");
+            ps.setInt(1,idEtudiant);
 
-            if(rs.getInt("est_valide") == 0){
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            if(rs.getBoolean("est_valide")){
                 System.out.println("Votre PAE à bien été validée.");
             }else{
                 System.out.println("Votre PAE n'a pas pu être validée");
@@ -70,21 +69,21 @@ public class PaeService {
         }
     }
 
-    public void afficher_UE_disponible() throws Exception {
+    public void afficherUEs(int idEtudiant) throws Exception {
 
         try{
-            ArrayList<String> uesDisponible = new ArrayList<>();
+            String uesDisponible;
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.afficher_UE_a_ajouter() AS code_ue");
+                    ("SELECT projet_sql.afficher_ues(?) AS code_ue");
+            ps.setInt(1, idEtudiant);
             ResultSet rs = ps.executeQuery();
-            if(rs.getFetchSize() == 0) {
-                System.out.println("Aucune UE disponible");
-                return;
+            rs.next();
+            uesDisponible = rs.getString(1);
+            if(uesDisponible.equals("{}")){
+                System.out.println("Pas d'UE disponible");
             }
-            while(rs.next()){
-                uesDisponible.add(rs.getString("code_ue"));
-            }
-            System.out.println("Voici les UE disponible : \n" + uesDisponible.toString());
+            else
+                System.out.println("Voici les UE disponible : \n" + uesDisponible.toString());
         }catch (SQLException se){
             System.out.println(se.getMessage());
             throw new Exception();
@@ -92,22 +91,19 @@ public class PaeService {
 
     }
 
-    public void visualiser_PAE() throws Exception {
+    public void visualiser_PAE(int idEtudiant) throws Exception {
         try{
-            ArrayList<String> uesDansPae = new ArrayList<>();
+            String pae = "";
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_PAE() AS code_ue");
+                    ("SELECT projet_sql.visualiser_PAE(?) AS code_ue");
+            ps.setInt(1, idEtudiant);
             ResultSet rs = ps.executeQuery();
-
-            while(rs.next()){
-                uesDansPae.add(rs.getString("code_ue"));
-            }
-
-            if(uesDansPae.size() > 0){
-                System.out.println("Voici les UEs présente dans votre PAE : \n" + uesDansPae.toString());
-            }else{
+            rs.next();
+            pae = rs.getString(1);
+            if(pae.equals("{}")){
                 System.out.println("Votre PAE est vide.");
-
+            }else{
+                System.out.println("Voici les UEs présente dans votre PAE : \n" + pae.toString());
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
@@ -115,11 +111,13 @@ public class PaeService {
         }
     }
 
-    public void reinitialiser_PAE() throws Exception {
+    public void reinitialiser_PAE(int idEtudiant) throws Exception {
         try{
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.reinitialiser_PAE() AS est_valide");
+                    ("SELECT projet_sql.reinitialiser_PAE(?) AS est_valide");
+            ps.setInt(1, idEtudiant);
             ResultSet rs = ps.executeQuery();
+            rs.next();
             if(rs.getBoolean("est_valide")) {
                 System.out.println("Votre UE est déjà validée, vous ne pouvez plus la réinitialiser.");
             }else{

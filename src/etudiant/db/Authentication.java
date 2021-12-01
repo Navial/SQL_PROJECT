@@ -6,7 +6,7 @@ import java.sql.*;
 
 public class Authentication {
     private final Connection connection;
-
+    private static final String SEL = "$2a$10$M3Y5g8QegSS1bJt17r67ne";
     public Authentication() throws Exception {
         connection = new DbConnection().connection;
     }
@@ -49,7 +49,10 @@ public class Authentication {
                 throw new Exception("NO USER");
             else {
                 String dbPwd = rs.getString("mot_de_passe");
-                String sel = BCrypt.gensalt();
+
+                System.out.println(dbPwd);
+                //System.out.println(BCrypt.hashpw(pwd, SEL));
+
                 if (BCrypt.checkpw(pwd, dbPwd)){
                     etudiant = new Etudiant();
                     etudiant.setId(rs.getInt("id_etudiant"));
