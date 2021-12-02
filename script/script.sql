@@ -190,7 +190,7 @@ INSERT INTO projet_sql.lignes_ue VALUES (6,3);
 SELECT id_etudiant, nom, prenom, bloc, email, mot_de_passe FROM projet_sql.etudiants WHERE email = 'victor.denis@gmail.com';
 
 
-
+-- PROCEDURE ETUDIANT --
 -- procedure 1
 
 CREATE OR REPLACE FUNCTION projet_sql.ajouter_ue (
@@ -363,4 +363,160 @@ BEGIN
 END ;
 $$;
 
+-- PROCEDURES CENTRALE --
+-- procedure 1
+CREATE OR REPLACE FUNCTION projet_sql.ajouter_UE_central (
+    projet_sql.ues.id_ue%TYPE,
+    projet_sql.ues.nom%TYPE,
+    projet_sql.ues.nombre_credits%TYPE,
+    projet_sql.ues.num_bloc%TYPE)
+    RETURNS projet_sql.ues.code_ue%TYPE
+AS $$
+DECLARE
+    id_ue_param ALIAS FOR $1;
+    nom_param ALIAS FOR $2;
+    nombre_credits_param ALIAS FOR $3;
+    num_bloc_param ALIAS FOR $4;
+    code_ue VARCHAR;
+BEGIN
+    INSERT INTO projet_sql.ues VALUES(DEFAULT, id_ue_param, nom_param, nombre_credits_param, 0, num_bloc_param) RETURNING code_ue INTO code_ue;
+    RETURN code_ue;
+END;
+$$ LANGUAGE plpgsql;
 
+-- procedure 2
+CREATE OR REPLACE FUNCTION projet_sql.ajouter_prerequis_a_une_UE (
+    projet_sql.acces_ue.ue_prerequise%TYPE,
+    projet_sql.acces_ue.ue_suivante%TYPE)
+    RETURNS projet_sql.ues.code_ue%TYPE
+AS $$
+DECLARE
+    ue_prerequise_param ALIAS FOR $1;
+    ue_suivante_param ALIAS FOR $2;
+    bloc_ue_prerequise INTEGER;
+    bloc_ue_suivante INTEGER;
+    id_access_ue_ret INTEGER;
+BEGIN
+    bloc_ue_prerequise := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_prerequise=ue_prerequise_param AND a.ue_prerequise = u.id_ue);
+    bloc_ue_suivante := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_suivante=ue_suivante_param AND a.ue_suivante = u.id_ue);
+    IF bloc_ue_prerequise>=bloc_ue_suivante THEN
+        RAISE 'Le bloc de l_ue prerequise ne peut pas etre superieur a celui de l_ue concernee';
+    END IF;
+    INSERT INTO projet_sql.acces_ue VALUES(DEFAULT, ue_prerequise_param, ue_suivante_param) RETURNING id_acces_ue INTO id_access_ue_ret;
+    RETURN id_access_ue_ret;
+END ;
+$$ LANGUAGE plpgsql;
+
+-- procedure 3
+CREATE OR REPLACE FUNCTION projet_sql.ajouter_etudiant (
+    projet_sql.etudiants.nom%TYPE,
+    projet_sql.etudiants.prenom%TYPE,
+    projet_sql.etudiants.email%TYPE,
+    projet_sql.etudiants.mot_de_passe%TYPE,
+    projet_sql.etudiants.bloc%TYPE)
+    RETURNS INTEGER
+AS $$
+DECLARE
+    nom_param ALIAS FOR $1;
+    prenom_param ALIAS FOR $2;
+    email_param ALIAS FOR $3;
+    mot_de_passe_param ALIAS FOR $4;
+    bloc_param ALIAS FOR $5;
+    id_etudiant_ret INTEGER;
+BEGIN
+    INSERT INTO projet_sql.etudiants VALUES(DEFAULT, nom_param, prenom_param, email_param, mot_de_passe_param, bloc_param) RETURNING id_etudiant INTO id_etudiant_ret;
+    RETURN id_etudiant_ret;
+END ;
+$$ LANGUAGE plpgsql;
+
+-- procedure 4
+CREATE OR REPLACE FUNCTION projet_sql.encoder_UE_validee (
+    projet_sql.ues.id_ue%TYPE,
+    projet_sql.etudiants.id_etudiant%TYPE)
+    RETURNS RECORD
+AS $$
+DECLARE
+    id_ue_param ALIAS FOR $1;
+    id_etudiant_param ALIAS FOR $2;
+    ue_valide RECORD;
+BEGIN
+    INSERT INTO projet_sql.ues_valide VALUES(id_etudiant_param, id_ue_param) RETURNING id_etudiant, id_ue INTO ue_valide;
+    RETURN ue_valide;
+END ;
+$$ LANGUAGE plpgsql;
+
+-- procedure 5 TODO: Tester somme des credits!!
+CREATE OR REPLACE FUNCTION projet_sql.visualiser_tous_etudiants_d_un_bloc (
+    INTEGER)
+    RETURNS RECORD
+AS $$
+DECLARE
+    num_bloc_param ALIAS FOR $1;
+    ret RECORD;
+BEGIN
+    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", a.sum_credits as "Nombre de credits"
+    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l -- faire jointure WHERE ET METTRE LES CONDITIONS DANS LE WHERE
+                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
+                                                                    WHERE l2.id_pae = p2.id_pae AND l2.id_ue = u.id_ue
+                                                                    GROUP BY l2.id_pae, l2.id_ue) a on p.id_pae = l.id_pae
+    WHERE e.bloc IS NOT NULL AND e.bloc = num_bloc_param
+    AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
+    ORDER BY e.nom, e.prenom
+    INTO ret;
+
+    RETURN ret;
+END;
+$$ LANGUAGE plpgsql;
+
+-- procedure 6 TODO: TEST
+CREATE OR REPLACE FUNCTION projet_sql.visualiser_credits_etudiants ()
+    RETURNS RECORD
+AS $$
+DECLARE
+    ret RECORD;
+BEGIN
+    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", a.sum_credits as "Nombre de credits"
+    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l
+        -- TODO: nom du champ bloc? bloc OU num_bloc??
+                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u WHERE l2.id_pae = p.id_pae AND u.id_ue = l2.id_ue) a on p.id_pae = l.id_pae
+    WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
+    INTO ret;
+    RETURN ret;
+END ;
+$$ LANGUAGE plpgsql;
+
+-- procedure 7 TODO: TEST
+CREATE OR REPLACE FUNCTION projet_sql.visualiser_etudiants_non_valides ()
+    RETURNS RECORD
+AS $$
+DECLARE
+    ret RECORD;
+BEGIN
+    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", a.sum_credits as "Nombre de credits"
+    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l
+
+                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues_valide v, projet_sql.ues u
+                                                                    WHERE l2.id_pae = p.id_pae AND p.id_etudiant = e.id_etudiant AND e.id_etudiant = v.id_etudiant AND u.id_ue = l2.id_ue
+                                                                      AND l2.id_ue IN (SELECT v2.id_ue FROM projet_sql.ues_valide v2 WHERE v2.id_etudiant = e.id_etudiant)) a on p.id_pae = l.id_pae
+    WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND p.est_valide = FALSE
+    INTO ret;
+    RETURN ret;
+END;
+$$ LANGUAGE plpgsql;
+
+-- procedure 8 TODO: TEST
+CREATE OR REPLACE FUNCTION projet_sql.visualiser_credits_etudiants (
+    projet_sql.blocs.num_bloc%TYPE)
+    RETURNS RECORD
+AS $$
+DECLARE
+    num_bloc_param ALIAS FOR $1;
+    ret RECORD;
+BEGIN
+    SELECT u.code_ue as "Code UE", u.nom as "Nom", u.nombre_inscrits as "Nombre d'inscrits"
+    FROM projet_sql.ues u
+    WHERE u.num_bloc = num_bloc_param
+    INTO ret;
+    RETURN ret;
+END ;
+$$ LANGUAGE plpgsql;
