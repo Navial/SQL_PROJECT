@@ -1,6 +1,13 @@
 DROP SCHEMA IF EXISTS projet_sql CASCADE;
 CREATE SCHEMA projet_sql;
 
+--GRANT CONNECT ON DATABASE dbvictordenis TO alexendrewalwis;
+--GRANT USAGE ON SCHEMA projet_sql TO alexendrewalwis;
+--GRANT SELECT ON projet_sql.paes, projet_sql.ues_valide, projet_sql.acces_ue, projet_sql.blocs, projet_sql.ues, projet_sql.lignes_ue TO alexendrewalwis;
+--GRANT INSERT ON projet_sql.lignes_ue TO alexendrewalwis;
+--GRANT UPDATE ON projet_sql.etudiants, projet_sql.ues  TO alexendrewalwis;
+--GRANT DELETE ON projet_sql.lignes_ue TO alexendrewalwis;
+
 CREATE TABLE projet_sql.blocs (
     num_bloc SERIAL PRIMARY KEY
 );
@@ -36,9 +43,9 @@ CREATE TABLE projet_sql.paes (
                                  id_etudiant INTEGER NOT NULL REFERENCES projet_sql.etudiants (id_etudiant)
 );
 CREATE TABLE projet_sql.lignes_ue (
-                                    CONSTRAINT id_ligne PRIMARY KEY(id_pae, id_ue),
-                                    id_pae INTEGER NOT NULL REFERENCES projet_sql.paes (id_pae),
-                                    id_ue INTEGER NOT NULL REFERENCES projet_sql.ues (id_ue)
+                                      CONSTRAINT id_ligne PRIMARY KEY(id_pae, id_ue),
+                                      id_pae INTEGER NOT NULL REFERENCES projet_sql.paes (id_pae),
+                                      id_ue INTEGER NOT NULL REFERENCES projet_sql.ues (id_ue)
 );
 
 --- Creation 3 bloc
@@ -212,21 +219,21 @@ BEGIN
     nb_credits_valides := (SELECT sum(nombre_credits) FROM projet_sql.ues u, projet_sql.ues_valide v WHERE u.id_ue = id_ue_param AND u.id_ue = v.id_ue AND v.id_etudiant = id_etudiant_param);
     IF pae_est_valide THEN
         RAISE 'Votre PAE est deja valide';
-END IF;
+    END IF;
     IF EXISTS(SELECT id_etudiant, id_ue FROM projet_sql.ues_valide WHERE id_etudiant = id_etudiant_param AND id_ue = id_ue_param) THEN
         RAISE 'Cette UE est deja valide';
-END IF;
+    END IF;
     IF EXISTS   (SELECT ue_prerequise
-                FROM projet_sql.acces_ue
-                WHERE ue_suivante = id_ue_param
-                AND ue_prerequise NOT IN (SELECT id_ue FROM projet_sql.ues_valide WHERE id_etudiant=id_etudiant_param)) THEN
+                 FROM projet_sql.acces_ue
+                 WHERE ue_suivante = id_ue_param
+                   AND ue_prerequise NOT IN (SELECT id_ue FROM projet_sql.ues_valide WHERE id_etudiant=id_etudiant_param)) THEN
         RAISE 'Cette UE a des prerequis a valider';
-END IF;
+    END IF;
     IF (nb_credits_valides < 30) AND (SELECT u.num_bloc FROM projet_sql.blocs b, projet_sql.ues u WHERE b.num_bloc = u.num_bloc AND u.id_ue = id_ue_param) <> 1 THEN
         RAISE 'Moins de 30 credits ont ete valides, vous ne pouvez que choisir une UE du bloc 1';
-END IF;
-INSERT INTO projet_sql.lignes_ue (id_pae, id_ue) VALUES(id_pae_var, id_ue_param) RETURNING id_ue INTO id_ue_v;
-RETURN id_ue_v;
+    END IF;
+    INSERT INTO projet_sql.lignes_ue (id_pae, id_ue) VALUES(id_pae_var, id_ue_param) RETURNING id_ue INTO id_ue_v;
+    RETURN id_ue_v;
 END ;
 $$ ;
 
@@ -252,7 +259,7 @@ END;
 $$;
 
 -- procedure 3
-CREATE OR REPLACE function projet_sql.alider_pae(integer) returns integer
+CREATE OR REPLACE function projet_sql.valider_pae(integer) returns integer
     language plpgsql
 as
 $$
@@ -366,7 +373,7 @@ $$;
 -- PROCEDURES CENTRALE --
 -- procedure 1
 CREATE OR REPLACE FUNCTION projet_sql.ajouter_UE_central (
-    projet_sql.ues.id_ue%TYPE,
+    projet_sql.ues.code_ue%TYPE,
     projet_sql.ues.nom%TYPE,
     projet_sql.ues.nombre_credits%TYPE,
     projet_sql.ues.num_bloc%TYPE)
@@ -377,32 +384,36 @@ DECLARE
     nom_param ALIAS FOR $2;
     nombre_credits_param ALIAS FOR $3;
     num_bloc_param ALIAS FOR $4;
-    code_ue VARCHAR;
+    code_ue_param VARCHAR;
 BEGIN
-    INSERT INTO projet_sql.ues VALUES(DEFAULT, id_ue_param, nom_param, nombre_credits_param, 0, num_bloc_param) RETURNING code_ue INTO code_ue;
-    RETURN code_ue;
+    INSERT INTO projet_sql.ues VALUES(DEFAULT, id_ue_param, nom_param, nombre_credits_param, 0, num_bloc_param) RETURNING code_ue INTO code_ue_param;
+    RETURN code_ue_param;
 END;
 $$ LANGUAGE plpgsql;
 
 -- procedure 2
 CREATE OR REPLACE FUNCTION projet_sql.ajouter_prerequis_a_une_UE (
-    projet_sql.acces_ue.ue_prerequise%TYPE,
-    projet_sql.acces_ue.ue_suivante%TYPE)
+    projet_sql.ues.code_ue%TYPE,
+    projet_sql.ues.code_ue%TYPE)
     RETURNS projet_sql.ues.code_ue%TYPE
 AS $$
 DECLARE
-    ue_prerequise_param ALIAS FOR $1;
-    ue_suivante_param ALIAS FOR $2;
+    code_ue_prerequise_param ALIAS FOR $1;
+    code_ue_suivante_param ALIAS FOR $2;
+    id_ue_prerequise INTEGER;
+    id_ue_suivante INTEGER;
     bloc_ue_prerequise INTEGER;
     bloc_ue_suivante INTEGER;
     id_access_ue_ret INTEGER;
 BEGIN
-    bloc_ue_prerequise := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_prerequise=ue_prerequise_param AND a.ue_prerequise = u.id_ue);
-    bloc_ue_suivante := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_suivante=ue_suivante_param AND a.ue_suivante = u.id_ue);
+    id_ue_prerequise := (SELECT id_ue FROM projet_sql.ues u WHERE code_ue = code_ue_prerequise_param);
+    id_ue_suivante := (SELECT id_ue FROM projet_sql.ues u WHERE code_ue = code_ue_suivante_param);
+    bloc_ue_prerequise := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_prerequise=id_ue_prerequise AND a.ue_prerequise = u.id_ue);
+    bloc_ue_suivante := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_suivante=id_ue_suivante AND a.ue_suivante = u.id_ue);
     IF bloc_ue_prerequise>=bloc_ue_suivante THEN
         RAISE 'Le bloc de l_ue prerequise ne peut pas etre superieur a celui de l_ue concernee';
     END IF;
-    INSERT INTO projet_sql.acces_ue VALUES(DEFAULT, ue_prerequise_param, ue_suivante_param) RETURNING id_acces_ue INTO id_access_ue_ret;
+    INSERT INTO projet_sql.acces_ue VALUES(DEFAULT, id_ue_prerequise, id_ue_suivante) RETURNING id_acces_ue INTO id_access_ue_ret;
     RETURN id_access_ue_ret;
 END ;
 $$ LANGUAGE plpgsql;
@@ -431,19 +442,32 @@ $$ LANGUAGE plpgsql;
 
 -- procedure 4
 CREATE OR REPLACE FUNCTION projet_sql.encoder_UE_validee (
-    projet_sql.ues.id_ue%TYPE,
-    projet_sql.etudiants.id_etudiant%TYPE)
+    projet_sql.etudiants.email%TYPE,
+    projet_sql.ues.code_ue%TYPE)
     RETURNS RECORD
 AS $$
 DECLARE
-    id_ue_param ALIAS FOR $1;
-    id_etudiant_param ALIAS FOR $2;
+    email_etudiant_param ALIAS FOR $1;
+    code_ue_param ALIAS FOR $2;
+    id_etudiant_var INTEGER;
+    id_ue_var INTEGER;
     ue_valide RECORD;
 BEGIN
-    INSERT INTO projet_sql.ues_valide VALUES(id_etudiant_param, id_ue_param) RETURNING id_etudiant, id_ue INTO ue_valide;
+    id_etudiant_var := (SELECT e.id_etudiant FROM projet_sql.etudiants e WHERE e.email = email_etudiant_param);
+    id_ue_var := (SELECT u.id_ue FROM projet_sql.ues u WHERE u.code_ue = code_ue_param);
+    INSERT INTO projet_sql.ues_valide VALUES(id_etudiant_var, id_ue_var) RETURNING id_etudiant, id_ue INTO ue_valide;
     RETURN ue_valide;
 END ;
 $$ LANGUAGE plpgsql;
+
+
+CREATE VIEW projet_sql.view_all_students_from_bloc AS
+SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", SUM(u.nombre_credits) as somme_credits
+FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
+WHERE e.bloc IS NOT NULL AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
+  AND l.id_ue = u.id_ue
+group by E.id_etudiant, e.nom, e.prenom
+ORDER BY e.nom, e.prenom;
 
 -- procedure 5 TODO: Tester somme des credits!!
 CREATE OR REPLACE FUNCTION projet_sql.visualiser_tous_etudiants_d_un_bloc (
@@ -454,13 +478,11 @@ DECLARE
     num_bloc_param ALIAS FOR $1;
     ret RECORD;
 BEGIN
-    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", a.sum_credits as "Nombre de credits"
-    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l -- faire jointure WHERE ET METTRE LES CONDITIONS DANS LE WHERE
-                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
-                                                                    WHERE l2.id_pae = p2.id_pae AND l2.id_ue = u.id_ue
-                                                                    GROUP BY l2.id_pae, l2.id_ue) a on p.id_pae = l.id_pae
-    WHERE e.bloc IS NOT NULL AND e.bloc = num_bloc_param
-    AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
+    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", SUM(u.nombre_credits) as somme_credits
+    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
+    WHERE e.bloc IS NOT NULL AND e.bloc = num_bloc_param AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
+    AND l.id_ue = u.id_ue
+    group by E.id_etudiant, e.nom, e.prenom
     ORDER BY e.nom, e.prenom
     INTO ret;
 
@@ -478,7 +500,7 @@ BEGIN
     SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", a.sum_credits as "Nombre de credits"
     FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l
         -- TODO: nom du champ bloc? bloc OU num_bloc??
-                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u WHERE l2.id_pae = p.id_pae AND u.id_ue = l2.id_ue) a on p.id_pae = l.id_pae
+    INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u WHERE l2.id_pae = p.id_pae AND u.id_ue = l2.id_ue) a on p.id_pae = l.id_pae
     WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
     INTO ret;
     RETURN ret;
@@ -493,12 +515,16 @@ DECLARE
     ret RECORD;
 BEGIN
     SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", a.sum_credits as "Nombre de credits"
-    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l
+    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.ues_valide v, projet_sql.ues u
 
-                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues_valide v, projet_sql.ues u
-                                                                    WHERE l2.id_pae = p.id_pae AND p.id_etudiant = e.id_etudiant AND e.id_etudiant = v.id_etudiant AND u.id_ue = l2.id_ue
-                                                                      AND l2.id_ue IN (SELECT v2.id_ue FROM projet_sql.ues_valide v2 WHERE v2.id_etudiant = e.id_etudiant)) a on p.id_pae = l.id_pae
-    WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND p.est_valide = FALSE
+                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues_valide v, projet_sql.ues u, projet_sql.paes p2, projet_sql.etudiants e2
+                                                                    WHERE l2.id_pae = p2.id_pae AND p2.id_etudiant = e2.id_etudiant AND e2.id_etudiant = v.id_etudiant AND u.id_ue = l2.id_ue
+                                                                      AND l2.id_ue IN (SELECT v2.id_ue FROM projet_sql.ues_valide v2 WHERE v2.id_etudiant = e2.id_etudiant)) a on p.id_pae = l.id_pae
+    WHERE
+      e.id_etudiant = p.id_etudiant AND
+      p.id_pae = l.id_pae AND
+
+      p.est_valide = FALSE
     INTO ret;
     RETURN ret;
 END;

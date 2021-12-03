@@ -61,9 +61,9 @@ public class Main {
                     case 4: //valider une UE pour un étudiant
                         System.out.println("Entrer l'email de l'étudiant");
                         email = scanner.nextLine();
-                        System.out.println("Entrer l'id de l'ue à ajouter");
-                        int idUe = Integer.parseInt(scanner.nextLine());
-                        ps.encoderUeVal(email, idUe);
+                        System.out.println("Entrer le code de l'ue à ajouter");
+                        codeUe = scanner.nextLine();
+                        ps.encoderUeVal(email, codeUe);
                         break;
                     case 5: //visualiser tous les étudiants d'un bloc
                         System.out.println("Entrer le bloc : ");

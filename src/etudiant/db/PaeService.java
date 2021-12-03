@@ -29,7 +29,6 @@ public class PaeService {
             }
         } catch (SQLException se) {
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -46,14 +45,13 @@ public class PaeService {
                 System.out.println("Une erreur s'est produite");
         }catch (SQLException se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
     public void validerPAE(int idEtudiant) throws Exception {
         try{
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.valider_PAE(?) AS est_valide");
+                    ("SELECT projet_sql.valider_pae(?) AS est_valide");
             ps.setInt(1,idEtudiant);
 
             ResultSet rs = ps.executeQuery();
@@ -65,7 +63,6 @@ public class PaeService {
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -86,7 +83,6 @@ public class PaeService {
                 System.out.println("Voici les UE disponible : \n" + uesDisponible.toString());
         }catch (SQLException se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
 
     }
@@ -107,7 +103,6 @@ public class PaeService {
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -125,7 +120,6 @@ public class PaeService {
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
