@@ -19,7 +19,7 @@ public class PaeService {
         try {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.ajouter_UE_central(?, ?, ?, ?) AS");
+                    ("SELECT projet_sql.ajouter_UE_central(?, ?, ?, ?) AS id_ue");
             ps.setString(1,codeUe);
             ps.setString(2, nomUe);
             ps.setInt(3, nbrCredits);
@@ -38,7 +38,7 @@ public class PaeService {
     public void ajouter_prerequis(String uePrerequise, String ueSuivante) throws Exception {
         try {
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.ajouter_prerequis(?, ?) AS code_ue");
+                    ("SELECT projet_sql.ajouter_prerequis_a_une_UE(?, ?) AS code_ue");
             ps.setString(1,uePrerequise);
             ps.setString(2, ueSuivante);
             ResultSet rs = ps.executeQuery();
@@ -79,7 +79,7 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.encode_ue_val(?, ?) ");
+                    ("SELECT projet_sql.encoder_UE_validee(?, ?) ");
             ps.setString(1, email);
             ps.setInt(2, idUe);
 
@@ -122,7 +122,7 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_credits_etudiants");
+                    ("SELECT projet_sql.visualiser_credits_etudiants()");
             ResultSet rs = ps.executeQuery();
             // Print du record renvoye par la procedure
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -145,7 +145,7 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_etudiants_non_valides  AS code_ue");
+                    ("SELECT projet_sql.visualiser_etudiants_non_valides()  AS code_ue");
             ResultSet rs = ps.executeQuery();
             // Print du record renvoye par la procedure
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -169,7 +169,7 @@ public class PaeService {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.projet_sql.visualiser_credits_etudiants (?)  AS code_ue");
+                    ("SELECT projet_sql.visualiser_credits_etudiants (?)  AS code_ue");
             ps.setInt(1, bloc);
             ResultSet rs = ps.executeQuery();
             // Print du record renvoye par la procedure
