@@ -68,14 +68,13 @@ public class Main {
             switch (choix) {
                 case 1:
                     System.out.println("Entrer le code de l'UE à ajouter");
-                    idUe = Integer.parseInt(scanner.nextLine());
-                    System.out.println(etudiant.getId());;
-                    ps.ajouterUE(etudiant.getId(),idUe);
+                    String codeUe = scanner.nextLine();
+                    ps.ajouterUE(etudiant.getId(),codeUe);
                     break;
                 case 2:
                     System.out.println("Entrer le code de l'UE à enlever");
-                    idUe = Integer.parseInt(scanner.nextLine());
-                    ps.enleverUE(etudiant.getId(),idUe);
+                    codeUe = scanner.nextLine();
+                    ps.enleverUE(etudiant.getId(),codeUe);
                     break;
                 case 3:
                     ps.validerPAE(etudiant.getId());

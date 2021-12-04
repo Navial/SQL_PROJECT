@@ -13,12 +13,12 @@ public class PaeService {
         connection = new DbConnection().connection;
     }
 
-    public void ajouterUE(int idEtudiant,int idUe) throws Exception {
+    public void ajouterUE(int idEtudiant,String codeUe) throws Exception {
         try {
 
             PreparedStatement ps = connection.prepareStatement
                     ("SELECT projet_sql.ajouter_ue(?, ?) AS code_ue");
-            ps.setInt(1,idUe);
+            ps.setString(1,codeUe);
             ps.setInt(2,idEtudiant);
             ResultSet rs = ps.executeQuery();
 
@@ -32,15 +32,15 @@ public class PaeService {
         }
     }
 
-    public void enleverUE(int idEtudiant, int idUe) throws Exception {
+    public void enleverUE(int idEtudiant, String codeUe) throws Exception {
         try{
             PreparedStatement ps = connection.prepareStatement
                     ("SELECT projet_sql.enlever_UE(?, ?) AS code_ue");
-            ps.setInt(1,idUe);
+            ps.setString(1,codeUe);
             ps.setInt(2,idEtudiant);
             ResultSet rs = ps.executeQuery();
             if (rs.next())
-                System.out.println("L'UE " + idUe + " à bien été enlevée de votre PAE.");
+                System.out.println("L'UE " + codeUe + " à bien été enlevée de votre PAE.");
             else
                 System.out.println("Une erreur s'est produite");
         }catch (SQLException se){

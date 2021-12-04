@@ -30,7 +30,6 @@ public class PaeService {
             System.out.println(codeUe + " a bien été ajoutée");
         } catch (Exception se) {
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -47,7 +46,6 @@ public class PaeService {
             System.out.println("Le prérequis a bien été ajouté.");
         } catch (Exception se) {
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -70,7 +68,6 @@ public class PaeService {
             System.out.println("L'étudiant a bien été ajouté");
         }catch (Exception se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -89,7 +86,6 @@ public class PaeService {
             System.out.println("L'ue a bien été encodée");
         }catch (Exception se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
     //case 5 visualiserTousEtudiantDUnBloc(bloc)
@@ -97,23 +93,15 @@ public class PaeService {
         try {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT * FROM projet_sql.visualiser_tous_etudiants_d_un_bloc WHERE \"Bloc\"= ? ");
+                    ("SELECT nom, prenom FROM projet_sql.visualiser_etudiants WHERE bloc = ? ");
             ps.setInt(1, bloc);
-            // Print du record renvoye par la procedure
+
             ResultSet rs = ps.executeQuery();
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int columnsNumber = rsmd.getColumnCount();
-            while (rs.next()) {
-                for (int i = 1; i <= columnsNumber; i++) {
-                    if (i > 1) System.out.print(",  ");
-                    String columnValue = rs.getString(i);
-                    System.out.print(columnValue + " " + rsmd.getColumnName(i));
-                }
-                System.out.println("");
+            while(rs.next()){
+                System.out.println(rs.getString("nom") + " " + rs.getString("prenom"));
             }
         }catch (Exception se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
@@ -122,18 +110,11 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT * FROM projet_sql.visualiser_credits_etudiants");
+                    ("SELECT nom, prenom, somme_credits FROM projet_sql.visualiser_etudiants");
+
             ResultSet rs = ps.executeQuery();
-            // Print du record renvoye par la procedure
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int columnsNumber = rsmd.getColumnCount();
-            while (rs.next()) {
-                for (int i = 1; i <= columnsNumber; i++) {
-                    if (i > 1) System.out.print(",  ");
-                    String columnValue = rs.getString(i);
-                    System.out.print(columnValue + " " + rsmd.getColumnName(i));
-                }
-                System.out.println("");
+            while(rs.next()){
+                System.out.println(rs.getString("nom") + " " + rs.getString("prenom") + " " + rs.getString("somme_credits"));
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
@@ -144,22 +125,14 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT * FROM projet_sql.visualiser_etudiants_non_valides");
+                    ("SELECT nom, prenom FROM projet_sql.visualiser_etudiants WHERE est_valide = false");
             ResultSet rs = ps.executeQuery();
-            // Print du record renvoye par la procedure
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int columnsNumber = rsmd.getColumnCount();
-            while (rs.next()) {
-                for (int i = 1; i <= columnsNumber; i++) {
-                    if (i > 1) System.out.print(",  ");
-                    String columnValue = rs.getString(i);
-                    System.out.print(columnValue + " " + rsmd.getColumnName(i));
-                }
-                System.out.println("");
+
+            while(rs.next()){
+                System.out.println(rs.getString("nom") + " " + rs.getString("prenom"));
             }
         }catch (Exception se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
     // case 8
@@ -168,17 +141,16 @@ public class PaeService {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT * FROM projet_sql.visualiser_ue_d_un_bloc WHERE \"Bloc\" = ?");
+                    ("SELECT * FROM projet_sql.visualiser_ue WHERE \"Bloc\" = ?");
             ps.setInt(1, bloc);
             // Print du record renvoye par la procedure
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
-                System.out.println(rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
+                System.out.println(rs.getString(1) + " " + rs.getString(2) );
             }
 
         }catch (Exception se){
             System.out.println(se.getMessage());
-            throw new Exception();
         }
     }
 
