@@ -2,7 +2,6 @@ package centrale;
 
 import centrale.db.PaeService;
 
-import java.sql.SQLOutput;
 import java.util.Scanner;
 
 public class Main {
@@ -79,7 +78,7 @@ public class Main {
                     case 8 :
                         System.out.println("Entrer le numero de bloc ");
                         bloc = Integer.parseInt(scanner.nextLine());
-                        ps.visualiserCreditsEtudiantsBloc(bloc);
+                        ps.visualiserUesDUnBloc(bloc);
                         break;
                 }
             }

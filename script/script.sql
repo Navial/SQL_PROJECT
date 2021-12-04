@@ -460,89 +460,35 @@ BEGIN
 END ;
 $$ LANGUAGE plpgsql;
 
-
-CREATE VIEW projet_sql.view_all_students_from_bloc AS
+-- procedure 5 TODO: Tester somme des credits!!
+CREATE OR REPLACE VIEW projet_sql.visualiser_tous_etudiants_d_un_bloc AS
 SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", SUM(u.nombre_credits) as somme_credits
-FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
-WHERE e.bloc IS NOT NULL AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
-  AND l.id_ue = u.id_ue
+from projet_sql.etudiants e, projet_sql.ues u, projet_sql.paes p, projet_sql.lignes_ue l
+where e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND l.id_ue = u.id_ue
 group by E.id_etudiant, e.nom, e.prenom
 ORDER BY e.nom, e.prenom;
 
--- procedure 5 TODO: Tester somme des credits!!
-CREATE OR REPLACE FUNCTION projet_sql.visualiser_tous_etudiants_d_un_bloc (
-    INTEGER)
-    RETURNS RECORD
-AS $$
-DECLARE
-    num_bloc_param ALIAS FOR $1;
-    ret RECORD;
-BEGIN
-    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", SUM(u.nombre_credits) as somme_credits
-    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.lignes_ue l2, projet_sql.ues u, projet_sql.paes p2
-    WHERE e.bloc IS NOT NULL AND e.bloc = num_bloc_param AND e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
-    AND l.id_ue = u.id_ue
-    group by E.id_etudiant, e.nom, e.prenom
-    ORDER BY e.nom, e.prenom
-    INTO ret;
-
-    RETURN ret;
-END;
-$$ LANGUAGE plpgsql;
-
 -- procedure 6 TODO: TEST
-CREATE OR REPLACE FUNCTION projet_sql.visualiser_credits_etudiants ()
-    RETURNS RECORD
-AS $$
-DECLARE
-    ret RECORD;
-BEGIN
-    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", a.sum_credits as "Nombre de credits"
-    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l
-        -- TODO: nom du champ bloc? bloc OU num_bloc??
-    INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues u WHERE l2.id_pae = p.id_pae AND u.id_ue = l2.id_ue) a on p.id_pae = l.id_pae
-    WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae
-    INTO ret;
-    RETURN ret;
-END ;
-$$ LANGUAGE plpgsql;
+CREATE OR REPLACE VIEW projet_sql.visualiser_credits_etudiants AS
+SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", SUM(u.nombre_credits) as somme_credits
+from projet_sql.etudiants e, projet_sql.ues u, projet_sql.paes p, projet_sql.lignes_ue l
+where e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND l.id_ue = u.id_ue
+  AND l.id_ue = u.id_ue
+group by E.id_etudiant, e.nom, e.prenom
+ORDER BY somme_credits;
 
 -- procedure 7 TODO: TEST
-CREATE OR REPLACE FUNCTION projet_sql.visualiser_etudiants_non_valides ()
-    RETURNS RECORD
-AS $$
-DECLARE
-    ret RECORD;
-BEGIN
-    SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", a.sum_credits as "Nombre de credits"
-    FROM projet_sql.etudiants e, projet_sql.paes p, projet_sql.lignes_ue l, projet_sql.ues_valide v, projet_sql.ues u
-
-                                                        INNER JOIN (SELECT l2.id_pae, l2.id_ue, SUM(u.nombre_credits) AS sum_credits FROM projet_sql.lignes_ue l2, projet_sql.ues_valide v, projet_sql.ues u, projet_sql.paes p2, projet_sql.etudiants e2
-                                                                    WHERE l2.id_pae = p2.id_pae AND p2.id_etudiant = e2.id_etudiant AND e2.id_etudiant = v.id_etudiant AND u.id_ue = l2.id_ue
-                                                                      AND l2.id_ue IN (SELECT v2.id_ue FROM projet_sql.ues_valide v2 WHERE v2.id_etudiant = e2.id_etudiant)) a on p.id_pae = l.id_pae
-    WHERE
-      e.id_etudiant = p.id_etudiant AND
-      p.id_pae = l.id_pae AND
-
-      p.est_valide = FALSE
-    INTO ret;
-    RETURN ret;
-END;
-$$ LANGUAGE plpgsql;
+CREATE OR REPLACE VIEW projet_sql.visualiser_etudiants_non_valides AS
+SELECT e.id_etudiant as "ID", e.nom as "Nom", e.prenom as "Prenom", e.bloc as "Bloc", SUM(u.nombre_credits) as somme_credits
+from projet_sql.etudiants e, projet_sql.ues u, projet_sql.paes p, projet_sql.lignes_ue l
+where e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND l.id_ue = u.id_ue AND p.est_valide = false
+    AND l.id_ue IN (SELECT v.id_ue
+                    FROM projet_sql.ues u2, projet_sql.ues_valide v
+                    WHERE u2.id_ue = v.id_ue AND v.id_etudiant = e.id_etudiant)
+group by E.id_etudiant, e.nom, e.prenom
+ORDER BY e.nom, e.prenom;
 
 -- procedure 8 TODO: TEST
-CREATE OR REPLACE FUNCTION projet_sql.visualiser_credits_etudiants (
-    projet_sql.blocs.num_bloc%TYPE)
-    RETURNS RECORD
-AS $$
-DECLARE
-    num_bloc_param ALIAS FOR $1;
-    ret RECORD;
-BEGIN
-    SELECT u.code_ue as "Code UE", u.nom as "Nom", u.nombre_inscrits as "Nombre d'inscrits"
-    FROM projet_sql.ues u
-    WHERE u.num_bloc = num_bloc_param
-    INTO ret;
-    RETURN ret;
-END ;
-$$ LANGUAGE plpgsql;
+CREATE OR REPLACE VIEW projet_sql.visualiser_ue_d_un_bloc AS
+SELECT DISTINCT u.code_ue as "Code UE", u.nom as "Nom",  u.nombre_inscrits as "Nombre d'inscrits", u.num_bloc as "Bloc"
+FROM projet_sql.ues u;

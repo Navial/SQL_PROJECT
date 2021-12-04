@@ -97,7 +97,7 @@ public class PaeService {
         try {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.view_all_students_from_bloc WHERE 'Bloc'= (?) ");
+                    ("SELECT * FROM projet_sql.visualiser_tous_etudiants_d_un_bloc WHERE \"Bloc\"= ? ");
             ps.setInt(1, bloc);
             // Print du record renvoye par la procedure
             ResultSet rs = ps.executeQuery();
@@ -122,7 +122,7 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_credits_etudiants");
+                    ("SELECT * FROM projet_sql.visualiser_credits_etudiants");
             ResultSet rs = ps.executeQuery();
             // Print du record renvoye par la procedure
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -144,7 +144,7 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_etudiants_non_valides  AS code_ue");
+                    ("SELECT * FROM projet_sql.visualiser_etudiants_non_valides");
             ResultSet rs = ps.executeQuery();
             // Print du record renvoye par la procedure
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -163,17 +163,17 @@ public class PaeService {
         }
     }
     // case 8
-    public void visualiserCreditsEtudiantsBloc( int bloc ) throws Exception{
+    public void visualiserUesDUnBloc(int bloc ) throws Exception{
         try {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.visualiser_credits_etudiants (?)  AS code_ue");
+                    ("SELECT * FROM projet_sql.visualiser_ue_d_un_bloc WHERE \"Bloc\" = ?");
             ps.setInt(1, bloc);
             // Print du record renvoye par la procedure
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
-                System.out.println(rs.getString(1));
+                System.out.println(rs.getString(1) + " " + rs.getString(2) + " " + rs.getString(3));
             }
 
         }catch (Exception se){
