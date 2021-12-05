@@ -50,17 +50,16 @@ public class PaeService {
     }
 
     //case 3
-    public void ajouter_etudiant(String nom, String prenom, String email, String pwd, int bloc) throws Exception{
+    public void ajouter_etudiant(String nom, String prenom, String email, String pwd) throws Exception{
         try {
-            if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
+
             String pwdHash = BCrypt.hashpw(pwd, SEL);
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.ajouter_etudiant(?, ?, ?, ?, ?) ");
+                    ("SELECT projet_sql.ajouter_etudiant(?, ?, ?, ?) ");
             ps.setString(1, nom);
             ps.setString(2, prenom);
             ps.setString(3, email);
             ps.setString(4, pwdHash);
-            ps.setInt(5, bloc);
 
             ResultSet rs = ps.executeQuery();
             // TODO affichage de la réponse

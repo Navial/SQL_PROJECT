@@ -71,17 +71,18 @@ public class PaeService {
         try{
             String uesDisponible;
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT projet_sql.afficher_ues(?) AS code_ue");
+                    ("SELECT * FROM projet_sql.visualier_ues_suivantes WHERE id_etudiant = ? ");
             ps.setInt(1, idEtudiant);
             ResultSet rs = ps.executeQuery();
-            rs.next();
-            uesDisponible = rs.getString(1);
-            if(uesDisponible.equals("{}")){
-                System.out.println("Pas d'UE disponible");
+
+            System.out.println("Voici les UE disponible : ");
+            while(rs.next()) {
+                System.out.println("code ue : " + rs.getString("code_ue") + ", nom : "
+                        + rs.getString("nom") + ", nombre de credits : "
+                        + rs.getString("nombre_credits") + ", numero du bloc : "
+                        + rs.getString("num_bloc"));
             }
-            else
-                System.out.println("Voici les UE disponible : \n" + uesDisponible.toString());
-        }catch (SQLException se){
+            }catch (SQLException se){
             System.out.println(se.getMessage());
         }
 

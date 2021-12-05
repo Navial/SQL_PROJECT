@@ -42,8 +42,8 @@ public class Main {
                         System.out.println("Entrer le code de l'UE prerequise");
                         String uePrerequise = scanner.nextLine();
                         System.out.println("Entrer le code de l'UE principale");
-                        String uePrincipale = scanner.nextLine();
-                        ps.ajouter_prerequis(uePrerequise, uePrincipale);
+                        String ueSuivante = scanner.nextLine();
+                        ps.ajouter_prerequis(uePrerequise, ueSuivante);
                         break;
                     case 3: // ajouter un nouvel étudiant
                         System.out.println("Entrer le nom : ");
@@ -54,9 +54,8 @@ public class Main {
                         String email = scanner.nextLine();
                         System.out.println("Entrer le mot de passe : ");
                         String pwd = scanner.nextLine();
-                        System.out.println("Entre le bloc : ");
-                        bloc = Integer.parseInt(scanner.nextLine());
-                        ps.ajouter_etudiant(nom, prenom, email, pwd, bloc);
+
+                        ps.ajouter_etudiant(nom, prenom, email, pwd);
                         break;
                     case 4: //valider une UE pour un étudiant
                         System.out.println("Entrer l'email de l'étudiant");

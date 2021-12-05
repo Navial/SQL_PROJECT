@@ -21,7 +21,7 @@ CREATE TABLE projet_sql.etudiants(
 );
 CREATE TABLE projet_sql.ues (
                                 id_ue SERIAL PRIMARY KEY,
-                                code_ue VARCHAR(10) NOT NULL check(code_ue<>''),
+                                code_ue VARCHAR(10) UNIQUE NOT NULL check(code_ue<>''),
                                 nom VARCHAR(100) NOT NULL CHECK (nom<>''),
                                 nombre_credits INTEGER NOT NULL CHECK (nombre_credits>0),
                                 nombre_inscrits INTEGER CHECK (nombre_inscrits>=0),
@@ -48,26 +48,35 @@ CREATE TABLE projet_sql.lignes_ue (
                                       id_ue INTEGER NOT NULL REFERENCES projet_sql.ues (id_ue)
 );
 
---- Creation 3 bloc
+--Creation des blocs
+INSERT INTO projet_sql.blocs VALUES (DEFAULT);
+INSERT INTO projet_sql.blocs VALUES (DEFAULT);
+INSERT INTO projet_sql.blocs VALUES (DEFAULT);
 
-INSERT INTO projet_sql.blocs VALUES (DEFAULT);
-INSERT INTO projet_sql.blocs VALUES (DEFAULT);
-INSERT INTO projet_sql.blocs VALUES (DEFAULT);
---
-INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Damas','Christophe','christophe.damas@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',1);
-INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Ferneew','Stephanie','stephanie.ferneew@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',1);
-INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Vander Meulen','Jose','vandermeulen.jose@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',1);
-INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Leconte','Emeline','leconte.emeline@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',1);
+--Creation des etudiants
+INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Damas','Christophe','christophe.damas@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW', NULL);
+INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Ferneew','Stephanie','stephanie.ferneew@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',NULL);
+INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Vander Meulen','Jose','vandermeulen.jose@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',NULL);
+INSERT INTO projet_sql.etudiants VALUES (DEFAULT,'Leconte','Emeline','leconte.emeline@student.vinci.be','$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW',NULL);
 
+--Creation des paes
+INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 1);
+INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 2);
+INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 3);
+INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 4);
+
+--Creation des ues
+--bloc 1
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV11','BD1',31,DEFAULT,1);
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV13','Algo',13,DEFAULT,1);
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV12','APOO',16,DEFAULT,1);
-
+--bloc 2
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV21','BD2',42,DEFAULT,2); -- 14
-
+--bloc 3
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV311','Anglais 3',16,DEFAULT,3); -- 30
 INSERT INTO projet_sql.ues VALUES (DEFAULT,'BINV32','Stage',44,DEFAULT,3); -- 30
 
+-- Creation des ues validees
 INSERT INTO projet_sql.ues_valide VALUES (1,3);
 INSERT INTO projet_sql.ues_valide VALUES (1,2);
 INSERT INTO projet_sql.ues_valide VALUES (2,1);
@@ -81,6 +90,7 @@ INSERT INTO projet_sql.ues_valide VALUES (4,2);
 INSERT INTO projet_sql.ues_valide VALUES (4,4);
 INSERT INTO projet_sql.ues_valide VALUES (4,6);
 
+--Creation des prerequis
 INSERT INTO projet_sql.acces_ue VALUES (DEFAULT, 1,4); -- BD1 - BD2
 INSERT INTO projet_sql.acces_ue VALUES (DEFAULT, 4,6); -- BD2 - Stage
 
@@ -259,6 +269,9 @@ BEGIN
     END IF;
     INSERT INTO projet_sql.lignes_ue (id_pae, id_ue) VALUES(id_pae_var, id_ue_var) RETURNING id_ue INTO id_ue_v;
     RETURN id_ue_v;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE 'Cette UE ne peut pas etre ajoutee';
 END ;
 $$ ;
 
@@ -277,6 +290,9 @@ BEGIN
     id_ue_var := (SELECT id_ue FROM projet_sql.ues WHERE code_ue = code_ue_param);
     id_pae_var := (SELECT id_pae FROM projet_sql.paes WHERE id_etudiant = id_etudiant_param);
     pae_est_valide := (SELECT est_valide FROM projet_sql.paes WHERE id_etudiant = id_etudiant_param);
+    IF NOT EXISTS(SELECT id_ue FROM projet_sql.lignes_ue l, projet_sql.paes p WHERE p.id_pae = l.id_pae AND p.id_pae= id_pae_var AND l.id_ue = id_ue_var) THEN
+        RAISE 'Cette UE n''est pas dans votre PAE';
+    end if;
     IF pae_est_valide THEN
         RAISE 'Votre PAE est deja valide';
     END IF;
@@ -284,7 +300,6 @@ BEGIN
     RETURN id_ue_var;
 END;
 $$;
-
 
 -- procedure 3
 CREATE OR REPLACE function projet_sql.valider_pae(integer) returns integer
@@ -298,24 +313,26 @@ DECLARE
     somme_credits_pae INTEGER;
     est_valide_var BOOLEAN;
 BEGIN
-    somme_credits_valide := (SELECT sum(nombre_credits)
+    somme_credits_valide := (SELECT sum(u.nombre_credits)
                              FROM projet_sql.ues u, projet_sql.ues_valide v
                              WHERE u.id_ue = v.id_ue AND id_etudiant = id_etudiant_param);
+
     id_pae_var := (SELECT id_pae
                    FROM projet_sql.paes
                    WHERE id_etudiant = id_etudiant_param);
-    somme_credits_pae := (SELECT sum(nombre_credits)
+    somme_credits_pae := (SELECT sum(u.nombre_credits)
                           FROM projet_sql.ues u, projet_sql.lignes_ue l
                           WHERE u.id_ue = l.id_ue AND id_pae = id_pae_var);
+
     est_valide_var := (SELECT est_valide FROM projet_sql.paes WHERE id_pae = id_pae_var);
     -- EXCEPTIONS
-    IF((somme_credits_pae+somme_credits_valide)>=180 AND somme_credits_pae>74) THEN
+    IF((somme_credits_pae+somme_credits_valide)>=180 AND somme_credits_pae+somme_credits_valide>74) THEN
         RAISE 'Votre PAE ne peut pas depasser 74 credits';
     END IF;
-    IF ((somme_credits_valide<45) AND (somme_credits_pae>60)) THEN
+    IF ((somme_credits_pae+somme_credits_valide<45) AND (somme_credits_pae+somme_credits_valide>60)) THEN
         RAISE 'Votre PAE ne peut pas depasser 60 credits';
     END IF;
-    IF ((somme_credits_pae>74) OR (somme_credits_pae<55)) THEN
+    IF ((somme_credits_pae+somme_credits_valide>74) OR (somme_credits_pae+somme_credits_valide<55)) THEN
         RAISE 'Votre PAE ne peut pas etre en dessous de 55 credits ou au-dessus de 74 credits';
     END IF;
     --RAISE notice 'est_valide_var %', est_valide_var;
@@ -328,7 +345,7 @@ BEGIN
 
     UPDATE projet_sql.paes SET est_valide = true WHERE id_pae = id_pae_var;
 
-    IF (@somme_credits_pae+ @somme_credits_valide)>=180 THEN
+    IF (@somme_credits_pae+ @somme_credits_valide>=180) THEN
         UPDATE projet_sql.etudiants SET bloc = 3 WHERE id_etudiant = id_etudiant_param;
         RETURN 3;
     END IF;
@@ -343,22 +360,22 @@ $$;
 
 -- procedure 4
 
-CREATE OR REPLACE function projet_sql.afficher_ues(id_etudiant_param integer) returns text[]
-    language plpgsql
-as
-$$
-DECLARE
-    ues_var text[];
-BEGIN
-    ues_var := array(
-            select code_ue
-            from projet_sql.ues
-                     inner join projet_sql.ues_valide on ues.id_ue = ues_valide.id_ue
-            where ues_valide.id_etudiant = id_etudiant_param);
-    return ues_var;
-END ;
-$$;
+CREATE OR REPLACE VIEW projet_sql.visualier_ues_suivantes AS
+SELECT DISTINCT acces_ue.ue_suivante, ues.code_ue, ues.nom, ues.nombre_credits,  ues_valide.id_etudiant, ues.num_bloc
+FROM  projet_sql.acces_ue
+          JOIN projet_sql.ues ON acces_ue.ue_suivante = ues.id_ue
+          JOIN projet_sql.ues_valide
+               ON ues_valide.id_ue = acces_ue.ue_prerequise
+                   AND acces_ue.ue_suivante NOT IN (
+                       SELECT id_ue
+                       FROM projet_sql.ues_valide v2
+                       WHERE ues_valide.id_etudiant = v2.id_etudiant)
+                   AND acces_ue.ue_suivante NOT IN (
+                       SELECT id_ue
+                       FROM projet_sql.lignes_ue
+                       WHERE lignes_ue.id_pae = ues_valide.id_etudiant)
 
+ORDER BY ues.code_ue;
 
 -- procedure 5
 CREATE OR REPLACE function projet_sql.visualiser_pae(id_etudiant_param integer) returns text[]
@@ -408,18 +425,27 @@ CREATE OR REPLACE FUNCTION projet_sql.ajouter_UE_central (
     RETURNS projet_sql.ues.code_ue%TYPE
 AS $$
 DECLARE
-    id_ue_param ALIAS FOR $1;
+    code_ue_param ALIAS FOR $1;
     nom_param ALIAS FOR $2;
     nombre_credits_param ALIAS FOR $3;
     num_bloc_param ALIAS FOR $4;
-    code_ue_param VARCHAR;
+    ue_bloc INTEGER;
 BEGIN
-    INSERT INTO projet_sql.ues VALUES(DEFAULT, id_ue_param, nom_param, nombre_credits_param, 0, num_bloc_param) RETURNING code_ue INTO code_ue_param;
+    ue_bloc := substring(code_ue_param, 5, 1);
+
+    if(ue_bloc > num_bloc_param)
+        THEN RAISE 'Le bloc ne correspond pas au code UE';
+    END IF;
+    INSERT INTO projet_sql.ues VALUES(DEFAULT, code_ue_param, nom_param, nombre_credits_param, 0, num_bloc_param) RETURNING code_ue INTO code_ue_param;
     RETURN code_ue_param;
+    EXCEPTION
+       WHEN others THEN
+            RAISE 'Code UE non valide';
+
 END;
 $$ LANGUAGE plpgsql;
 
--- procedure 2
+-- procedure centrale 2
 CREATE OR REPLACE FUNCTION projet_sql.ajouter_prerequis_a_une_UE (
     projet_sql.ues.code_ue%TYPE,
     projet_sql.ues.code_ue%TYPE)
@@ -436,12 +462,14 @@ DECLARE
 BEGIN
     id_ue_prerequise := (SELECT id_ue FROM projet_sql.ues u WHERE code_ue = code_ue_prerequise_param);
     id_ue_suivante := (SELECT id_ue FROM projet_sql.ues u WHERE code_ue = code_ue_suivante_param);
-    bloc_ue_prerequise := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_prerequise=id_ue_prerequise AND a.ue_prerequise = u.id_ue);
-    bloc_ue_suivante := (SELECT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_suivante=id_ue_suivante AND a.ue_suivante = u.id_ue);
+    bloc_ue_prerequise := (SELECT DISTINCT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_prerequise=id_ue_prerequise AND a.ue_prerequise = u.id_ue);
+    bloc_ue_suivante := (SELECT DISTINCT u.num_bloc FROM projet_sql.acces_ue a, projet_sql.ues u WHERE a.ue_suivante=id_ue_suivante AND a.ue_suivante = u.id_ue);
     IF bloc_ue_prerequise>=bloc_ue_suivante THEN
-        RAISE 'Le bloc de l_ue prerequise ne peut pas etre superieur a celui de l_ue concernee';
+        RAISE 'Le bloc de l''UE prerequise ne peut pas etre superieur ou egal a celui de l''UE concernee';
     END IF;
-    INSERT INTO projet_sql.acces_ue VALUES(DEFAULT, id_ue_prerequise, id_ue_suivante) RETURNING id_acces_ue INTO id_access_ue_ret;
+    INSERT INTO projet_sql.acces_ue (ue_prerequise, ue_suivante)
+    VALUES(id_ue_prerequise, id_ue_suivante)
+    RETURNING ue_prerequise, ue_suivante INTO id_access_ue_ret;
     RETURN id_access_ue_ret;
 END ;
 $$ LANGUAGE plpgsql;
@@ -451,8 +479,7 @@ CREATE OR REPLACE FUNCTION projet_sql.ajouter_etudiant (
     projet_sql.etudiants.nom%TYPE,
     projet_sql.etudiants.prenom%TYPE,
     projet_sql.etudiants.email%TYPE,
-    projet_sql.etudiants.mot_de_passe%TYPE,
-    projet_sql.etudiants.bloc%TYPE)
+    projet_sql.etudiants.mot_de_passe%TYPE)
     RETURNS INTEGER
 AS $$
 DECLARE
@@ -460,10 +487,10 @@ DECLARE
     prenom_param ALIAS FOR $2;
     email_param ALIAS FOR $3;
     mot_de_passe_param ALIAS FOR $4;
-    bloc_param ALIAS FOR $5;
     id_etudiant_ret INTEGER;
 BEGIN
-    INSERT INTO projet_sql.etudiants VALUES(DEFAULT, nom_param, prenom_param, email_param, mot_de_passe_param, bloc_param) RETURNING id_etudiant INTO id_etudiant_ret;
+    INSERT INTO projet_sql.etudiants (id_etudiant, nom, prenom, email, mot_de_passe, bloc)
+    VALUES(DEFAULT, nom_param, prenom_param, email_param, mot_de_passe_param, null) RETURNING id_etudiant INTO id_etudiant_ret;
     INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, id_etudiant_ret);
     RETURN id_etudiant_ret;
 END ;
@@ -490,7 +517,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Vue pour etudiants
-create view visualiser_etudiants(id_etudiant, nom, prenom, bloc, somme_credits, est_valide) as
+create view projet_sql.visualiser_etudiants(id_etudiant, nom, prenom, bloc, somme_credits, est_valide) as
 SELECT e.id_etudiant,
        e.nom,
        e.prenom,
@@ -531,10 +558,50 @@ CREATE OR REPLACE VIEW projet_sql.visualiser_ue AS
 SELECT u.code_ue , u.nom ,  u.nombre_inscrits , u.num_bloc
 FROM projet_sql.ues u;
 
-INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 1);
-INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 2);
-INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 3);
-INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 4);
-INSERT INTO projet_sql.etudiants VALUES (DEFAULT, 'Cambron', 'Isabelle', 'cambron.isabelle@studetn.vinci.be', '$2a$10$M3Y5g8QegSS1bJt17r67ne4yeG6JeohsshjslS/1RZT3RPqFqPbXW');
-INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 5);
+-- triggers
+-- trigger bloc etudiant
+CREATE OR REPLACE FUNCTION projet_sql.update_bloc_etudiants() RETURNS TRIGGER AS $$
+DECLARE
+somme_credits_pae INTEGER;
+    somme_credits_valide INTEGER;
+    id_etudiant_var INTEGER;
+BEGIN
+    id_etudiant_var := (SELECT e.id_etudiant FROM projet_sql.etudiants e, projet_sql.paes p
+                        WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = NEW.id_pae);
+    somme_credits_pae := (SELECT sum(nombre_credits)
+                          FROM projet_sql.ues u, projet_sql.lignes_ue l
+                          WHERE u.id_ue = l.id_ue AND id_pae = NEW.id_pae);
+    somme_credits_valide := (SELECT sum(nombre_credits)
+                             FROM projet_sql.ues u, projet_sql.ues_valide v
+                             WHERE u.id_ue = v.id_ue AND id_etudiant = id_etudiant_var);
+    IF (somme_credits_pae+ somme_credits_valide)>=180 THEN
+UPDATE projet_sql.etudiants SET bloc = 3 WHERE id_etudiant = id_etudiant_var;
+RETURN NEW;
+END IF;
+        IF (somme_credits_valide<45) THEN
+UPDATE projet_sql.etudiants SET bloc = 1 WHERE id_etudiant = id_etudiant_var;
+RETURN NEW;
+END IF;
+UPDATE projet_sql.etudiants SET bloc = 2 WHERE id_etudiant = id_etudiant_var;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE TRIGGER trigger_bloc_etudiants
+    AFTER INSERT ON projet_sql.lignes_ue FOR EACH ROW
+    EXECUTE PROCEDURE projet_sql.update_bloc_etudiants();
+
+-- trigger nombre_inscrits
+CREATE OR REPLACE FUNCTION projet_sql.update_nombre_inscrits() RETURNS TRIGGER AS $$
+DECLARE
+old_nombres_inscrits INTEGER;
+new_nombres_inscrits INTEGER;
+BEGIN
+    UPDATE projet_sql.ues SET nombre_inscrits = nombre_inscrits + 1 WHERE id_ue = NEW.id_ue;
+return NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_nombre_inscrits
+    AFTER INSERT ON projet_sql.lignes_ue FOR EACH ROW
+    EXECUTE PROCEDURE projet_sql.update_nombre_inscrits();
