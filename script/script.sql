@@ -490,26 +490,45 @@ $$ LANGUAGE plpgsql;
 
 
 -- Vue pour etudiants
-CREATE OR REPLACE VIEW projet_sql.visualiser_etudiants
-AS
+create view visualiser_etudiants(id_etudiant, nom, prenom, bloc, somme_credits, est_valide) as
 SELECT e.id_etudiant,
        e.nom,
        e.prenom,
        e.bloc,
        sum(u.nombre_credits) AS somme_credits,
        p.est_valide
+FROM projet_sql.etudiants e
+         LEFT JOIN projet_sql.paes p ON e.id_etudiant = p.id_etudiant
+         LEFT JOIN projet_sql.lignes_ue l ON p.id_pae = l.id_pae
+         LEFT JOIN projet_sql.ues u ON l.id_ue = u.id_ue
+         AND e.id_etudiant = p.id_etudiant
+         AND p.id_pae = l.id_pae
+         AND l.id_ue = u.id_ue
+GROUP BY e.id_etudiant, e.nom, e.prenom, p.est_valide;
+
+
+
+-- vue pour somme crédits valide
+
+CREATE OR REPLACE VIEW projet_sql.visualiser_credits_valide
+AS
+SELECT e.nom,
+       e.prenom,
+       p.est_valide,
+       sum(u.nombre_credits) AS somme_credits_valide
 FROM projet_sql.etudiants e,
      projet_sql.ues u,
-     projet_sql.paes p,
-     projet_sql.lignes_ue l
-WHERE e.id_etudiant = p.id_etudiant AND p.id_pae = l.id_pae AND l.id_ue = u.id_ue
-GROUP BY e.id_etudiant, e.nom, e.prenom, p.est_valide
-ORDER BY e.nom, e.prenom;
+     projet_sql.ues_valide uv,
+     projet_sql.paes p
+WHERE e.id_etudiant = uv.id_etudiant
+  AND u.id_ue = uv.id_ue
+  AND p.id_etudiant = e.id_etudiant
+GROUP BY e.id_etudiant, e.nom, e.prenom, p.est_valide;
 
 
 -- procedure 8 TODO: TEST
 CREATE OR REPLACE VIEW projet_sql.visualiser_ue AS
-SELECT u.code_ue as "Code UE", u.nom as "Nom",  u.nombre_inscrits as "Nombre d'inscrits", u.num_bloc as "Bloc"
+SELECT u.code_ue , u.nom ,  u.nombre_inscrits , u.num_bloc
 FROM projet_sql.ues u;
 
 INSERT INTO projet_sql.paes VALUES (DEFAULT, DEFAULT, 1);

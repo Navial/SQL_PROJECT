@@ -4,6 +4,7 @@ import etudiant.db.Authentication;
 import etudiant.db.PaeService;
 import etudiant.model.Etudiant;
 
+import java.sql.SQLOutput;
 import java.util.Scanner;
 
 public class Main {
@@ -13,43 +14,15 @@ public class Main {
         Etudiant etudiant = null;
         Authentication auth;
         PaeService paeService;
-        boolean connected = false;
 
-        System.out.println("1) Créer un compte \n" +
-                "2) Se connecter");
-        int choixConnexion = Integer.parseInt(scanner.nextLine());
+        System.out.println("Bonjour, veuillez vous connecter : ");
+        System.out.println("Entrer votre adresse e-mail : ");
+        String email = scanner.nextLine();
+        System.out.println("Entrer votre adresse mot de passe: ");
+        String motDePasse = scanner.nextLine();
 
-        while(!connected) {
-            switch (choixConnexion) {
-                case 1:
-                    //Creation compte avec hash
-                    System.out.println("Entrer votre nom : ");
-                    String nom = scanner.nextLine();
-                    System.out.println("Entrer votre prénom : ");
-                    String prenom = scanner.nextLine();
-                    System.out.println("Entrer votre adresse email : ");
-                    String email = scanner.nextLine();
-                    System.out.println("Entrer votre mot de passe : ");
-                    String pwd = scanner.nextLine();
-
-                    auth = new Authentication();
-                    etudiant = auth.createAccount(nom, prenom, email, pwd);
-                    connected = true;
-                    break;
-                case 2:
-                    System.out.println("Entrer votre adresse e-mail : ");
-                    email = scanner.nextLine();
-                    System.out.println("Entrer votre adresse mot de passe: ");
-                    String motDePasse = scanner.nextLine();
-
-                    auth = new Authentication();
-                    etudiant = auth.authenticate(email, motDePasse);
-                    connected = true;
-
-                    break;
-            }
-        }
-
+        auth = new Authentication();
+        etudiant = auth.authenticate(email, motDePasse);
 
         System.out.println("Bonjour " + etudiant.getPrenom() + " " + etudiant.getNom());
         int choix = 0;

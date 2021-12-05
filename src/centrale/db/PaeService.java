@@ -93,12 +93,12 @@ public class PaeService {
         try {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT nom, prenom FROM projet_sql.visualiser_etudiants WHERE bloc = ? ");
+                    ("SELECT nom, prenom, somme_credits FROM projet_sql.visualiser_etudiants WHERE bloc = ? ORDER BY nom, prenom");
             ps.setInt(1, bloc);
 
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
-                System.out.println(rs.getString("nom") + " " + rs.getString("prenom"));
+                System.out.println("Etudiant(e) " + rs.getString("nom") + " " + rs.getString("prenom")+ ", nombre credits du pae :  " + rs.getString("somme_credits"));
             }
         }catch (Exception se){
             System.out.println(se.getMessage());
@@ -110,11 +110,11 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT nom, prenom, somme_credits FROM projet_sql.visualiser_etudiants");
+                    ("SELECT nom, prenom, bloc, somme_credits FROM projet_sql.visualiser_etudiants ORDER BY somme_credits ");
 
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
-                System.out.println(rs.getString("nom") + " " + rs.getString("prenom") + " " + rs.getString("somme_credits"));
+                System.out.println("Etudiant(e) " + rs.getString("nom") + " " + rs.getString("prenom") + ", bloc : " + rs.getString("bloc") + ", nombre credits du pae : " + rs.getString("somme_credits"));
             }
         }catch (SQLException se){
             System.out.println(se.getMessage());
@@ -125,11 +125,11 @@ public class PaeService {
         try {
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT nom, prenom FROM projet_sql.visualiser_etudiants WHERE est_valide = false");
+                    ("SELECT nom, prenom, somme_credits_valide FROM projet_sql.visualiser_credits_valide WHERE est_valide = false ORDER BY nom , prenom");
             ResultSet rs = ps.executeQuery();
 
             while(rs.next()){
-                System.out.println(rs.getString("nom") + " " + rs.getString("prenom"));
+                System.out.println("Etudiant(e) " + rs.getString("nom") + " " + rs.getString("prenom") +  ", nombre credits déjà validé : " + rs.getString("somme_credits_valide"));
             }
         }catch (Exception se){
             System.out.println(se.getMessage());
@@ -141,12 +141,12 @@ public class PaeService {
             if(bloc > 3 || bloc < 1) throw new IllegalArgumentException("Le bloc doit être entre 1 et 3");
 
             PreparedStatement ps = connection.prepareStatement
-                    ("SELECT * FROM projet_sql.visualiser_ue WHERE \"Bloc\" = ?");
+                    ("SELECT code_ue, nom, nombre_inscrits, num_bloc FROM projet_sql.visualiser_ue WHERE num_bloc = ? ORDER BY nombre_inscrits");
             ps.setInt(1, bloc);
-            // Print du record renvoye par la procedure
             ResultSet rs = ps.executeQuery();
+
             while(rs.next()){
-                System.out.println(rs.getString(1) + " " + rs.getString(2) );
+                System.out.println(rs.getString("code_ue") + " " + rs.getString("nom") + " " + rs.getString("nombre_inscrits") );
             }
 
         }catch (Exception se){

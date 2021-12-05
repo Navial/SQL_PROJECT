@@ -11,30 +11,6 @@ public class Authentication {
         connection = new DbConnection().connection;
     }
 
-    public Etudiant createAccount(String lName, String fName, String email, String pwd) throws Exception {
-        Etudiant etudiant = null;
-        try {
-            if(alreadyExist(email))
-                throw new Exception("Adresse e-mail déjà utilisée");
-            else {
-                String sel = BCrypt.gensalt();
-                String pwdHash = BCrypt.hashpw(pwd, sel);
-                PreparedStatement ps = connection.prepareStatement
-                        ("INSERT INTO projet_sql.etudiants(nom, prenom, email, mot_de_passe)" +
-                                "VALUES (?, ?, ?, ?)");
-                ps.setString(1, lName);
-                ps.setString(2, fName);
-                ps.setString(3, email);
-                ps.setString(4, pwdHash);
-                ps.execute();
-                etudiant = authenticate(email, pwd);
-                return etudiant;
-            }
-        }catch (Exception e){
-            throw new Exception("err:email_alredy_used");
-        }
-    }
-
     public Etudiant authenticate(String email, String pwd) throws Exception {
         Etudiant etudiant;
         try {

@@ -13,12 +13,12 @@ public class Main {
             PaeService ps = new PaeService();
             do {
                 System.out.println("Faites un choix : \n" +
-                        "1) Créer une UE  \n" +
+                        "1) Ajouter une UE  \n" +
                         "2) Ajouter un prerequis a une UE \n" +
-                        "3) Créer un étudiant \n" +
+                        "3) Ajouter un étudiant \n" +
                         "4) Encoder une UE validée pour un étudiant \n" +
                         "5) Visualiser les étudiants d'un bloc \n" +
-                        "6) Visualiser les crédits des étudiants \n" +
+                        "6) Visualiser les crédits de tous les étudiants \n" +
                         "7) Visualiser les étudiants qui n'ont pas validé leur PAE \n" +
                         "8) Visualier les UE d'un bloc");
 
